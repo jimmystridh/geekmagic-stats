@@ -29,7 +29,7 @@ The device auto-cycles between screens every 10 seconds in album mode.
 ## Requirements
 
 - **GeekMagic SmallTV Ultra** (240x240, tested on firmware Ultra-V9.0.43)
-- **[claude-code-stats](https://github.com/nicokimmel/claude-code-stats)** binary on your PATH or at a known location
+- **[claude-code-stats](https://crates.io/crates/claude-code-stats)** crate (used as an in-process Rust library)
 - Rust toolchain
 
 ## Install
@@ -47,7 +47,7 @@ This installs two binaries to `~/.cargo/bin/`:
 ### One-shot push
 
 ```sh
-# Push stats screen only
+# Push stats screen only (uses host from config)
 geekmagic-stats
 
 # Push stats + disk as auto-cycling album
@@ -56,12 +56,30 @@ geekmagic-stats --with-disk
 # Custom device IP
 geekmagic-stats --host 192.168.1.50 --with-disk
 
-# Custom stats binary path
-geekmagic-stats --stats-bin /usr/local/bin/claude-code-stats
-
 # Save to file instead of pushing
 geekmagic-stats --output preview.png
 ```
+
+### Configuration
+
+By default, config is read from `~/.config/geekmagic-stats/config.toml`.
+
+```toml
+host = "10.0.1.102"
+daemon = 300
+with_disk = true
+```
+
+`host` is required for uploads unless you only use `--output`.
+
+You can override the path with `--config /path/to/config.toml`.
+
+Precedence order:
+- CLI flags
+- config file
+- built-in defaults (`with_disk = false`, no default daemon)
+
+`geekmagic-disk` supports the same config file and `--config` flag.
 
 ### Daemon mode
 
@@ -87,9 +105,8 @@ Create `~/Library/LaunchAgents/com.geekmagic.stats.plist`:
     <key>ProgramArguments</key>
     <array>
         <string>/Users/YOU/.cargo/bin/geekmagic-stats</string>
-        <string>--with-disk</string>
-        <string>-d</string>
-        <string>300</string>
+        <string>--config</string>
+        <string>/Users/YOU/.config/geekmagic-stats/config.toml</string>
     </array>
     <key>KeepAlive</key>
     <true/>
@@ -125,7 +142,7 @@ cargo install --path . && launchctl kickstart -k gui/$(id -u)/com.geekmagic.stat
 
 ## How it works
 
-1. Runs `claude-code-stats` to fetch current API usage as JSON
+1. Uses the `claude-code-stats` crate to collect current API usage as JSON
 2. Computes pace locally (rate of usage vs time remaining) if not provided by the API
 3. Renders 240x240 dark-themed images using `image` + `imageproc` + `ab_glyph` with the Inter font
 4. Encodes to JPEG and uploads via multipart POST to the device's HTTP API
@@ -137,8 +154,9 @@ The device runs a plain HTTP server with no authentication. Images are uploaded 
 
 ```
 src/
+  config.rs      Loads config from ~/.config/geekmagic-stats/config.toml
   main.rs        CLI entry point, daemon loop
-  stats.rs       Runs claude-code-stats, parses JSON, computes pace
+  stats.rs       Calls claude-code-stats crate, parses JSON, computes pace
   render.rs      Renders the stats screen (progress bars, text)
   disk.rs        Standalone disk usage binary
   disk_render.rs Renders the disk donut chart

@@ -1,5 +1,3 @@
-use std::process::Command;
-
 use anyhow::{Context, Result};
 use serde::Deserialize;
 
@@ -90,14 +88,10 @@ fn ensure_pace(window: &mut UsageWindow, window_minutes: f64) {
     }
 }
 
-pub fn fetch_stats(bin_path: &str) -> Result<ActiveData> {
-    let output = Command::new(bin_path)
-        .output()
-        .context("failed to run claude-code-stats")?;
-
-    let stdout = String::from_utf8_lossy(&output.stdout);
+pub fn fetch_stats() -> Result<ActiveData> {
+    let payload_json = claude_code_stats::collect_widget_payload_json();
     let payload: StatsPayload =
-        serde_json::from_str(&stdout).context("failed to parse claude-code-stats output")?;
+        serde_json::from_str(&payload_json).context("failed to parse claude-code-stats payload")?;
 
     let mut data = payload
         .data

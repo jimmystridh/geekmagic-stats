@@ -4,8 +4,9 @@ mod stats;
 use std::thread;
 use std::time::Duration;
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::Parser;
+use geekmagic_common::config;
 use geekmagic_common::disk_render;
 
 #[derive(Parser)]
@@ -13,11 +14,11 @@ use geekmagic_common::disk_render;
 struct Args {
     /// GeekMagic device IP address
     #[arg(long)]
-    host: String,
+    host: Option<String>,
 
-    /// Path to claude-code-stats binary
-    #[arg(long, default_value = "claude-code-stats")]
-    stats_bin: String,
+    /// Path to config file
+    #[arg(long)]
+    config: Option<String>,
 
     /// Save rendered image to this path instead of uploading
     #[arg(short, long)]
@@ -32,8 +33,35 @@ struct Args {
     with_disk: bool,
 }
 
-fn run_once(args: &Args) -> Result<()> {
-    let payload = stats::fetch_stats(&args.stats_bin)?;
+#[derive(Clone)]
+struct RuntimeArgs {
+    host: String,
+    output: Option<String>,
+    daemon: Option<u64>,
+    with_disk: bool,
+}
+
+fn resolve_args(args: Args) -> Result<RuntimeArgs> {
+    let cfg = config::load(args.config.as_deref())?;
+    let host = args
+        .host
+        .or(cfg.host)
+        .ok_or_else(|| anyhow!("missing host; pass --host or set host in config"))?;
+
+    Ok(RuntimeArgs {
+        host,
+        output: args.output,
+        daemon: args.daemon.or(cfg.daemon),
+        with_disk: if args.with_disk {
+            true
+        } else {
+            cfg.with_disk.unwrap_or(false)
+        },
+    })
+}
+
+fn run_once(args: &RuntimeArgs) -> Result<()> {
+    let payload = stats::fetch_stats()?;
     let stats_img = render::render_bars(&payload)?;
 
     if let Some(path) = &args.output {
@@ -62,7 +90,7 @@ fn run_once(args: &Args) -> Result<()> {
 }
 
 fn main() -> Result<()> {
-    let args = Args::parse();
+    let args = resolve_args(Args::parse())?;
 
     if let Some(interval) = args.daemon {
         let interval = interval.max(10);

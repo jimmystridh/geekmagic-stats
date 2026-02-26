@@ -1,12 +1,17 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::Parser;
+use geekmagic_common::config;
 use geekmagic_common::disk_render;
 
 #[derive(Parser)]
 #[command(about = "Render disk usage pie chart to a GeekMagic display")]
 struct Args {
     #[arg(long)]
-    host: String,
+    host: Option<String>,
+
+    /// Path to config file
+    #[arg(long)]
+    config: Option<String>,
 
     #[arg(short, long)]
     output: Option<String>,
@@ -14,6 +19,11 @@ struct Args {
 
 fn main() -> Result<()> {
     let args = Args::parse();
+    let cfg = config::load(args.config.as_deref())?;
+    let host = args
+        .host
+        .or(cfg.host)
+        .ok_or_else(|| anyhow!("missing host; pass --host or set host in config"))?;
     let info = disk_render::get_disk_info()?;
 
     println!(
@@ -30,8 +40,8 @@ fn main() -> Result<()> {
         img.save(path)?;
         println!("Saved to {path}");
     } else {
-        geekmagic_common::upload::upload_and_display(&args.host, &img)?;
-        println!("Pushed to {}", args.host);
+        geekmagic_common::upload::upload_and_display(&host, &img)?;
+        println!("Pushed to {host}");
     }
 
     Ok(())
