@@ -2,6 +2,12 @@
 name = "geekmagic-stats"
 version = "0.1.0"
 edition = "2021"
+description = "Push Claude Code usage and disk stats to GeekMagic SmallTV displays"
+license = "MIT"
+repository = "https://github.com/jimmystridh/geekmagic-stats"
+homepage = "https://github.com/jimmystridh/geekmagic-stats"
+documentation = "https://docs.rs/geekmagic-stats"
+readme = "README.md"
 
 [dependencies]
 anyhow = "1.0"
