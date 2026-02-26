@@ -56,8 +56,16 @@ fn is_inside_rounded(px: u32, py: u32, w: u32, h: u32, r: u32) -> bool {
         (w.saturating_sub(r + 1), h.saturating_sub(r + 1)),
     ];
     for &(cx, cy) in &corners {
-        let in_corner_x = if px <= cx { px < r } else { px > w.saturating_sub(r + 1) };
-        let in_corner_y = if py <= cy { py < r } else { py > h.saturating_sub(r + 1) };
+        let in_corner_x = if px <= cx {
+            px < r
+        } else {
+            px > w.saturating_sub(r + 1)
+        };
+        let in_corner_y = if py <= cy {
+            py < r
+        } else {
+            py > h.saturating_sub(r + 1)
+        };
         if in_corner_x && in_corner_y {
             let dx = if px < cx { cx - px } else { px - cx };
             let dy = if py < cy { cy - py } else { py - cy };
@@ -100,7 +108,11 @@ fn draw_gradient_bar(
         return;
     }
     for px in 0..fill_w {
-        let t = if total_w > 1 { px as f32 / (total_w - 1) as f32 } else { 0.0 };
+        let t = if total_w > 1 {
+            px as f32 / (total_w - 1) as f32
+        } else {
+            0.0
+        };
         let color = lerp_color(left_color, right_color, t);
         let abs_x = x as u32 + px;
         for py in 0..h {
@@ -122,10 +134,22 @@ fn blend_over(base: Rgba<u8>, over: Rgba<u8>) -> Rgba<u8> {
     ])
 }
 
-fn draw_pace_marker(img: &mut RgbaImage, bar_x: i32, bar_y: i32, bar_w: u32, bar_h: u32, expected_pct: f64, ok: bool) {
+fn draw_pace_marker(
+    img: &mut RgbaImage,
+    bar_x: i32,
+    bar_y: i32,
+    bar_w: u32,
+    bar_h: u32,
+    expected_pct: f64,
+    ok: bool,
+) {
     let marker_x = bar_x + (bar_w as f64 * expected_pct.clamp(0.0, 100.0) / 100.0) as i32;
     let color = if ok { PACE_OK } else { PACE_WARN };
-    let glow = if ok { Rgba([34, 197, 94, 80]) } else { Rgba([249, 115, 22, 80]) };
+    let glow = if ok {
+        Rgba([34, 197, 94, 80])
+    } else {
+        Rgba([249, 115, 22, 80])
+    };
 
     for dx in 0..2i32 {
         for dy in -3..(bar_h as i32 + 3) {
@@ -168,11 +192,17 @@ fn format_duration(minutes: f64) -> String {
     let hours = (total % 1440) / 60;
     let mins = total % 60;
     if days > 0 {
-        if hours == 0 { return format!("{days}d"); }
+        if hours == 0 {
+            return format!("{days}d");
+        }
         return format!("{days}d {hours}h");
     }
-    if hours == 0 { return format!("{mins}m"); }
-    if mins == 0 { return format!("{hours}h"); }
+    if hours == 0 {
+        return format!("{mins}m");
+    }
+    if mins == 0 {
+        return format!("{hours}h");
+    }
     format!("{hours}h {mins}m")
 }
 
@@ -191,7 +221,15 @@ fn approx_text_width(text: &str, scale: f32) -> i32 {
     w.ceil() as i32
 }
 
-fn draw_text_right(img: &mut RgbaImage, color: Rgba<u8>, right_x: i32, y: i32, scale: f32, font: &FontRef, text: &str) {
+fn draw_text_right(
+    img: &mut RgbaImage,
+    color: Rgba<u8>,
+    right_x: i32,
+    y: i32,
+    scale: f32,
+    font: &FontRef,
+    text: &str,
+) {
     let w = approx_text_width(text, scale);
     draw_text_mut(img, color, right_x - w, y, PxScale::from(scale), font, text);
 }
@@ -224,14 +262,28 @@ pub fn render_bars(data: &ActiveData) -> Result<RgbaImage> {
 
     let mut sections: Vec<BarSection> = Vec::new();
     if let Some(w) = &data.five_hour {
-        sections.push(BarSection { label: "Session", window: w.clone() });
+        sections.push(BarSection {
+            label: "Session",
+            window: w.clone(),
+        });
     }
     if let Some(w) = &data.seven_day {
-        sections.push(BarSection { label: "Weekly", window: w.clone() });
+        sections.push(BarSection {
+            label: "Weekly",
+            window: w.clone(),
+        });
     }
 
     if sections.is_empty() {
-        draw_text_mut(&mut img, TEXT_DIM, 60, 110, PxScale::from(16.0), &font, "No usage data");
+        draw_text_mut(
+            &mut img,
+            TEXT_DIM,
+            60,
+            110,
+            PxScale::from(16.0),
+            &font,
+            "No usage data",
+        );
         return Ok(img);
     }
 
@@ -241,7 +293,15 @@ pub fn render_bars(data: &ActiveData) -> Result<RgbaImage> {
 
     // ── Header: "Claude Code" + updated time ──
     let header_y = 10;
-    draw_text_mut(&mut img, TEXT_PRIMARY, mx, header_y, PxScale::from(17.0), &font_bold, "Claude Code");
+    draw_text_mut(
+        &mut img,
+        TEXT_PRIMARY,
+        mx,
+        header_y,
+        PxScale::from(17.0),
+        &font_bold,
+        "Claude Code",
+    );
 
     // Updated timestamp (right-aligned, bigger)
     let updated_text = if let Some(ts) = &data.updated_at {
@@ -249,7 +309,15 @@ pub fn render_bars(data: &ActiveData) -> Result<RgbaImage> {
     } else {
         "—".to_string()
     };
-    draw_text_right(&mut img, TEXT_DIM, right_edge, header_y + 1, 15.0, &font, &updated_text);
+    draw_text_right(
+        &mut img,
+        TEXT_DIM,
+        right_edge,
+        header_y + 1,
+        15.0,
+        &font,
+        &updated_text,
+    );
 
     // Separator
     draw_rounded_rect(&mut img, mx, 33, content_w, 1, 0, SEPARATOR);
@@ -267,37 +335,87 @@ pub fn render_bars(data: &ActiveData) -> Result<RgbaImage> {
         let inner_right = right_edge - 6;
 
         // Panel background
-        draw_rounded_rect(&mut img, mx - 4, by - 2, content_w + 8, section_h as u32 + 4, 10, PANEL_BG);
+        draw_rounded_rect(
+            &mut img,
+            mx - 4,
+            by - 2,
+            content_w + 8,
+            section_h as u32 + 4,
+            10,
+            PANEL_BG,
+        );
 
         // Row 1: Label left, big percentage right
         let row1_y = by + 4;
-        draw_text_mut(&mut img, TEXT_MUTED, bar_x, row1_y + 10, PxScale::from(14.0), &font_bold, section.label);
+        draw_text_mut(
+            &mut img,
+            TEXT_MUTED,
+            bar_x,
+            row1_y + 10,
+            PxScale::from(14.0),
+            &font_bold,
+            section.label,
+        );
 
         let pct_val = w.utilization.round() as i32;
         let pct_text = format!("{pct_val}%");
-        draw_text_right(&mut img, TEXT_PRIMARY, inner_right, row1_y - 2, 36.0, &font_bold, &pct_text);
+        draw_text_right(
+            &mut img,
+            TEXT_PRIMARY,
+            inner_right,
+            row1_y - 2,
+            36.0,
+            &font_bold,
+            &pct_text,
+        );
 
         // Row 2: Progress bar
         let bar_y = row1_y + 38;
         let bar_h = 14u32;
         let fill_frac = (w.utilization / 100.0) as f32;
         let (fill_l, fill_r) = bar_colors(&w.usage_level);
-        draw_gradient_bar(&mut img, bar_x, bar_y, bar_w, bar_h, fill_frac, fill_l, fill_r, 7);
+        draw_gradient_bar(
+            &mut img, bar_x, bar_y, bar_w, bar_h, fill_frac, fill_l, fill_r, 7,
+        );
 
         // Pace marker on bar
         if let Some(pace) = &w.pace {
-            draw_pace_marker(&mut img, bar_x, bar_y, bar_w, bar_h, pace.expected_percent, pace.will_last_to_reset);
+            draw_pace_marker(
+                &mut img,
+                bar_x,
+                bar_y,
+                bar_w,
+                bar_h,
+                pace.expected_percent,
+                pace.will_last_to_reset,
+            );
         }
 
         // Row 3: "X% left" bigger + "Resets in ..."
         let row3_y = bar_y + bar_h as i32 + 6;
         let remaining = (100.0 - w.utilization).max(0.0);
         let left_text = format!("{}% left", remaining.round() as i32);
-        draw_text_mut(&mut img, TEXT_PRIMARY, bar_x, row3_y, PxScale::from(15.0), &font_bold, &left_text);
+        draw_text_mut(
+            &mut img,
+            TEXT_PRIMARY,
+            bar_x,
+            row3_y,
+            PxScale::from(15.0),
+            &font_bold,
+            &left_text,
+        );
 
         if let Some(mins) = w.resets_in_minutes {
             let reset_text = format!("resets {}", format_duration(mins));
-            draw_text_right(&mut img, TEXT_DIM, inner_right, row3_y + 1, 15.0, &font, &reset_text);
+            draw_text_right(
+                &mut img,
+                TEXT_DIM,
+                inner_right,
+                row3_y + 1,
+                15.0,
+                &font,
+                &reset_text,
+            );
         }
 
         // Row 4: Pace info
@@ -314,7 +432,15 @@ pub fn render_bars(data: &ActiveData) -> Result<RgbaImage> {
 
             // Colored dot + text (bigger green/orange text)
             draw_circle(&mut img, bar_x + 4, pace_y + 6, 3, pace_color);
-            draw_text_mut(&mut img, pace_color, bar_x + 12, pace_y, PxScale::from(13.0), &font, &pace_text);
+            draw_text_mut(
+                &mut img,
+                pace_color,
+                bar_x + 12,
+                pace_y,
+                PxScale::from(13.0),
+                &font,
+                &pace_text,
+            );
 
             // Right side: ETA
             let right_text = if pace.will_last_to_reset {
@@ -325,7 +451,15 @@ pub fn render_bars(data: &ActiveData) -> Result<RgbaImage> {
                 String::new()
             };
             if !right_text.is_empty() {
-                draw_text_right(&mut img, pace_color, inner_right, pace_y, 12.0, &font, &right_text);
+                draw_text_right(
+                    &mut img,
+                    pace_color,
+                    inner_right,
+                    pace_y,
+                    12.0,
+                    &font,
+                    &right_text,
+                );
             }
         }
     }

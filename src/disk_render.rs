@@ -42,8 +42,8 @@ pub fn get_disk_info() -> Result<DiskInfo> {
         .or_else(|| extract_bytes(&stdout, "Disk Size:"))
         .context("could not find total space")?;
 
-    let free = extract_bytes(&stdout, "Container Free Space:")
-        .context("could not find free space")?;
+    let free =
+        extract_bytes(&stdout, "Container Free Space:").context("could not find free space")?;
 
     Ok(DiskInfo {
         total_bytes: total,
@@ -57,7 +57,10 @@ fn extract_bytes(text: &str, label: &str) -> Option<u64> {
         if line.contains(label) {
             if let Some(open) = line.find('(') {
                 let after_paren = &line[open + 1..];
-                let num_str: String = after_paren.chars().take_while(|c| c.is_ascii_digit()).collect();
+                let num_str: String = after_paren
+                    .chars()
+                    .take_while(|c| c.is_ascii_digit())
+                    .collect();
                 if !num_str.is_empty() {
                     return num_str.parse().ok();
                 }
@@ -105,12 +108,36 @@ fn approx_text_width(text: &str, scale: f32) -> i32 {
     w.ceil() as i32
 }
 
-fn draw_text_centered(img: &mut RgbaImage, color: Rgba<u8>, center_x: i32, y: i32, scale: f32, font: &FontRef, text: &str) {
+fn draw_text_centered(
+    img: &mut RgbaImage,
+    color: Rgba<u8>,
+    center_x: i32,
+    y: i32,
+    scale: f32,
+    font: &FontRef,
+    text: &str,
+) {
     let w = approx_text_width(text, scale);
-    draw_text_mut(img, color, center_x - w / 2, y, PxScale::from(scale), font, text);
+    draw_text_mut(
+        img,
+        color,
+        center_x - w / 2,
+        y,
+        PxScale::from(scale),
+        font,
+        text,
+    );
 }
 
-fn draw_text_right(img: &mut RgbaImage, color: Rgba<u8>, right_x: i32, y: i32, scale: f32, font: &FontRef, text: &str) {
+fn draw_text_right(
+    img: &mut RgbaImage,
+    color: Rgba<u8>,
+    right_x: i32,
+    y: i32,
+    scale: f32,
+    font: &FontRef,
+    text: &str,
+) {
     let w = approx_text_width(text, scale);
     draw_text_mut(img, color, right_x - w, y, PxScale::from(scale), font, text);
 }
@@ -141,8 +168,16 @@ fn is_inside_rounded(px: u32, py: u32, w: u32, h: u32, r: u32) -> bool {
         (w.saturating_sub(r + 1), h.saturating_sub(r + 1)),
     ];
     for &(cx, cy) in &corners {
-        let in_corner_x = if px <= cx { px < r } else { px > w.saturating_sub(r + 1) };
-        let in_corner_y = if py <= cy { py < r } else { py > h.saturating_sub(r + 1) };
+        let in_corner_x = if px <= cx {
+            px < r
+        } else {
+            px > w.saturating_sub(r + 1)
+        };
+        let in_corner_y = if py <= cy {
+            py < r
+        } else {
+            py > h.saturating_sub(r + 1)
+        };
         if in_corner_x && in_corner_y {
             let dx = if px < cx { cx - px } else { px - cx };
             let dy = if py < cy { cy - py } else { py - cy };
@@ -165,9 +200,25 @@ pub fn render_disk(info: &DiskInfo) -> Result<RgbaImage> {
 
     // Header
     let header_y = 10;
-    draw_text_mut(&mut img, TEXT_PRIMARY, mx, header_y, PxScale::from(17.0), &font_bold, "Macintosh HD");
+    draw_text_mut(
+        &mut img,
+        TEXT_PRIMARY,
+        mx,
+        header_y,
+        PxScale::from(17.0),
+        &font_bold,
+        "Macintosh HD",
+    );
     let total_text = format_size(info.total_bytes);
-    draw_text_right(&mut img, TEXT_DIM, right_edge, header_y + 1, 15.0, &font, &total_text);
+    draw_text_right(
+        &mut img,
+        TEXT_DIM,
+        right_edge,
+        header_y + 1,
+        15.0,
+        &font,
+        &total_text,
+    );
 
     draw_rounded_rect(&mut img, mx, 33, content_w, 1, 0, SEPARATOR);
 
@@ -227,8 +278,24 @@ pub fn render_disk(info: &DiskInfo) -> Result<RgbaImage> {
     // Center text: free percentage
     let free_pct = (free_frac * 100.0).round() as i32;
     let pct_text = format!("{free_pct}%");
-    draw_text_centered(&mut img, TEXT_PRIMARY, pie_cx as i32, pie_cy as i32 - 16, 30.0, &font_bold, &pct_text);
-    draw_text_centered(&mut img, TEXT_MUTED, pie_cx as i32, pie_cy as i32 + 12, 13.0, &font, "free");
+    draw_text_centered(
+        &mut img,
+        TEXT_PRIMARY,
+        pie_cx as i32,
+        pie_cy as i32 - 16,
+        30.0,
+        &font_bold,
+        &pct_text,
+    );
+    draw_text_centered(
+        &mut img,
+        TEXT_MUTED,
+        pie_cx as i32,
+        pie_cy as i32 + 12,
+        13.0,
+        &font,
+        "free",
+    );
 
     // Bottom area: legend with prominent GB values
     let legend_y = 192;
@@ -237,15 +304,47 @@ pub fn render_disk(info: &DiskInfo) -> Result<RgbaImage> {
 
     // Used
     draw_rounded_rect(&mut img, col1_x, legend_y + 4, 10, 10, 3, PIE_USED);
-    draw_text_mut(&mut img, TEXT_MUTED, col1_x + 14, legend_y, PxScale::from(13.0), &font, "Used");
+    draw_text_mut(
+        &mut img,
+        TEXT_MUTED,
+        col1_x + 14,
+        legend_y,
+        PxScale::from(13.0),
+        &font,
+        "Used",
+    );
     let used_text = format_size(info.used_bytes);
-    draw_text_mut(&mut img, TEXT_PRIMARY, col1_x + 14, legend_y + 16, PxScale::from(22.0), &font_bold, &used_text);
+    draw_text_mut(
+        &mut img,
+        TEXT_PRIMARY,
+        col1_x + 14,
+        legend_y + 16,
+        PxScale::from(22.0),
+        &font_bold,
+        &used_text,
+    );
 
     // Free
     draw_rounded_rect(&mut img, col2_x, legend_y + 4, 10, 10, 3, PIE_FREE);
-    draw_text_mut(&mut img, TEXT_MUTED, col2_x + 14, legend_y, PxScale::from(13.0), &font, "Free");
+    draw_text_mut(
+        &mut img,
+        TEXT_MUTED,
+        col2_x + 14,
+        legend_y,
+        PxScale::from(13.0),
+        &font,
+        "Free",
+    );
     let free_text = format_size(info.free_bytes);
-    draw_text_mut(&mut img, TEXT_PRIMARY, col2_x + 14, legend_y + 16, PxScale::from(22.0), &font_bold, &free_text);
+    draw_text_mut(
+        &mut img,
+        TEXT_PRIMARY,
+        col2_x + 14,
+        legend_y + 16,
+        PxScale::from(22.0),
+        &font_bold,
+        &free_text,
+    );
 
     Ok(img)
 }
