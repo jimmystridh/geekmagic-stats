@@ -16,6 +16,10 @@ struct Args {
     #[arg(long)]
     host: Option<String>,
 
+    /// Stats data provider: "lib" (claude-code-stats crate) or "ccusage" (native)
+    #[arg(long)]
+    provider: Option<String>,
+
     /// Path to config file
     #[arg(long)]
     config: Option<String>,
@@ -36,6 +40,7 @@ struct Args {
 #[derive(Clone)]
 struct RuntimeArgs {
     host: String,
+    provider: String,
     output: Option<String>,
     daemon: Option<u64>,
     with_disk: bool,
@@ -47,9 +52,14 @@ fn resolve_args(args: Args) -> Result<RuntimeArgs> {
         .host
         .or(cfg.host)
         .ok_or_else(|| anyhow!("missing host; pass --host or set host in config"))?;
+    let provider = args
+        .provider
+        .or(cfg.provider)
+        .unwrap_or_else(|| "lib".to_string());
 
     Ok(RuntimeArgs {
         host,
+        provider,
         output: args.output,
         daemon: args.daemon.or(cfg.daemon),
         with_disk: if args.with_disk {
@@ -61,7 +71,7 @@ fn resolve_args(args: Args) -> Result<RuntimeArgs> {
 }
 
 fn run_once(args: &RuntimeArgs) -> Result<()> {
-    let payload = stats::fetch_stats()?;
+    let payload = stats::fetch(&args.provider)?;
     let stats_img = render::render_bars(&payload)?;
 
     if let Some(path) = &args.output {

@@ -10,6 +10,7 @@ pub struct AppConfig {
     pub host: Option<String>,
     pub daemon: Option<u64>,
     pub with_disk: Option<bool>,
+    pub provider: Option<String>,
 }
 
 fn expand_home(path: &str) -> PathBuf {

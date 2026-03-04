@@ -1,12 +1,9 @@
-use anyhow::{Context, Result};
-use serde::Deserialize;
+mod ccusage;
+#[cfg(feature = "claude-code-stats-provider")]
+mod lib_provider;
 
-#[derive(Debug, Deserialize)]
-pub struct StatsPayload {
-    #[allow(dead_code)]
-    pub status: String,
-    pub data: Option<ActiveData>,
-}
+use anyhow::{anyhow, Result};
+use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub struct ActiveData {
@@ -31,8 +28,16 @@ pub struct PaceInfo {
     pub eta_minutes: Option<f64>,
 }
 
+pub fn fetch(provider: &str) -> Result<ActiveData> {
+    match provider {
+        "ccusage" => ccusage::fetch(),
+        #[cfg(feature = "claude-code-stats-provider")]
+        "lib" => lib_provider::fetch(),
+        other => Err(anyhow!("unknown provider: {other}")),
+    }
+}
+
 /// Compute pace locally when the API doesn't provide it.
-/// Mirrors the logic in claude-code-stats/src/types.rs.
 fn compute_pace(utilization: f64, resets_in_minutes: f64, window_minutes: f64) -> Option<PaceInfo> {
     if window_minutes <= 0.0 || resets_in_minutes <= 0.0 || resets_in_minutes > window_minutes {
         return None;
@@ -86,24 +91,4 @@ fn ensure_pace(window: &mut UsageWindow, window_minutes: f64) {
     if let Some(resets_in) = window.resets_in_minutes {
         window.pace = compute_pace(window.utilization, resets_in, window_minutes);
     }
-}
-
-pub fn fetch_stats() -> Result<ActiveData> {
-    let payload_json = claude_code_stats::collect_widget_payload_json();
-    let payload: StatsPayload =
-        serde_json::from_str(&payload_json).context("failed to parse claude-code-stats payload")?;
-
-    let mut data = payload
-        .data
-        .context("claude-code-stats returned non-active status")?;
-
-    // Compute pace locally if not provided
-    if let Some(w) = &mut data.five_hour {
-        ensure_pace(w, 300.0); // 5 hours
-    }
-    if let Some(w) = &mut data.seven_day {
-        ensure_pace(w, 10080.0); // 7 days
-    }
-
-    Ok(data)
 }

@@ -29,7 +29,8 @@ The device auto-cycles between screens every 10 seconds in album mode.
 ## Requirements
 
 - **GeekMagic SmallTV Ultra** (240x240, tested on firmware Ultra-V9.0.43)
-- **[claude-code-stats](https://crates.io/crates/claude-code-stats)** crate (used as an in-process Rust library)
+- **[claude-code-stats](https://crates.io/crates/claude-code-stats)** crate (default provider, used as an in-process Rust library), **or**
+- **[ccusage](https://github.com/ryoppippi/ccusage)** as an alternative provider (`brew install ccusage` or `npm i -g ccusage`)
 - Rust toolchain
 
 ## Install
@@ -68,6 +69,7 @@ By default, config is read from `~/.config/geekmagic-stats/config.toml`.
 host = "10.0.1.102"
 daemon = 300
 with_disk = true
+provider = "lib"  # or "ccusage"
 ```
 
 `host` is required for uploads unless you only use `--output`.
@@ -90,6 +92,26 @@ geekmagic-stats -d 300 --with-disk
 ```
 
 The interval (in seconds) has a minimum of 10s to avoid flooding the device.
+
+### Stats providers
+
+By default, stats are collected via the `claude-code-stats` Rust crate (provider `lib`). If you don't have `claude-code-stats` installed or prefer a different data source, you can use [ccusage](https://github.com/ryoppippi/ccusage) instead.
+
+```sh
+# Use ccusage as the stats provider
+geekmagic-stats --provider ccusage
+
+# Or set it in config.toml
+# provider = "ccusage"
+```
+
+The `ccusage` provider runs `ccusage blocks --json --offline` and computes utilization against your historical max token usage across past sessions (auto-calibrated).
+
+To compile without the `claude-code-stats` dependency entirely:
+
+```sh
+cargo install --path . --no-default-features
+```
 
 ### Run on startup (macOS)
 
@@ -154,14 +176,17 @@ The device runs a plain HTTP server with no authentication. Images are uploaded 
 
 ```
 src/
-  config.rs      Loads config from ~/.config/geekmagic-stats/config.toml
-  main.rs        CLI entry point, daemon loop
-  stats.rs       Calls claude-code-stats crate, parses JSON, computes pace
-  render.rs      Renders the stats screen (progress bars, text)
-  disk.rs        Standalone disk usage binary
-  disk_render.rs Renders the disk donut chart
-  upload.rs      JPEG encoding, device upload, album management
-  lib.rs         Shared library (upload + disk_render)
+  config.rs              Loads config from ~/.config/geekmagic-stats/config.toml
+  main.rs                CLI entry point, daemon loop
+  stats/
+    mod.rs               Shared types, provider routing, pace computation
+    lib_provider.rs      claude-code-stats crate provider (feature-gated)
+    ccusage.rs           ccusage CLI provider
+  render.rs              Renders the stats screen (progress bars, text)
+  disk.rs                Standalone disk usage binary
+  disk_render.rs         Renders the disk donut chart
+  upload.rs              JPEG encoding, device upload, album management
+  lib.rs                 Shared library (upload + disk_render)
 fonts/
   Inter-Regular.ttf
   Inter-Bold.ttf
