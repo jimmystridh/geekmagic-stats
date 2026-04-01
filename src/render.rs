@@ -67,8 +67,8 @@ fn is_inside_rounded(px: u32, py: u32, w: u32, h: u32, r: u32) -> bool {
             py > h.saturating_sub(r + 1)
         };
         if in_corner_x && in_corner_y {
-            let dx = if px < cx { cx - px } else { px - cx };
-            let dy = if py < cy { cy - py } else { py - cy };
+            let dx = cx.abs_diff(px);
+            let dy = cy.abs_diff(py);
             if dx * dx + dy * dy > r * r {
                 return false;
             }
