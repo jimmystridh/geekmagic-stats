@@ -91,8 +91,7 @@ fn draw_rounded_rect(img: &mut RgbaImage, x: i32, y: i32, w: u32, h: u32, r: u32
     }
 }
 
-fn draw_gradient_bar(
-    img: &mut RgbaImage,
+struct GradientBar {
     x: i32,
     y: i32,
     total_w: u32,
@@ -101,23 +100,33 @@ fn draw_gradient_bar(
     left_color: Rgba<u8>,
     right_color: Rgba<u8>,
     corner_r: u32,
-) {
-    draw_rounded_rect(img, x, y, total_w, h, corner_r, BAR_TRACK);
-    let fill_w = ((total_w as f32) * fill_frac.clamp(0.0, 1.0)) as u32;
+}
+
+fn draw_gradient_bar(img: &mut RgbaImage, bar: GradientBar) {
+    draw_rounded_rect(
+        img,
+        bar.x,
+        bar.y,
+        bar.total_w,
+        bar.h,
+        bar.corner_r,
+        BAR_TRACK,
+    );
+    let fill_w = ((bar.total_w as f32) * bar.fill_frac.clamp(0.0, 1.0)) as u32;
     if fill_w == 0 {
         return;
     }
     for px in 0..fill_w {
-        let t = if total_w > 1 {
-            px as f32 / (total_w - 1) as f32
+        let t = if bar.total_w > 1 {
+            px as f32 / (bar.total_w - 1) as f32
         } else {
             0.0
         };
-        let color = lerp_color(left_color, right_color, t);
-        let abs_x = x as u32 + px;
-        for py in 0..h {
-            let abs_y = y as u32 + py;
-            if is_inside_rounded(px, py, fill_w, h, corner_r) && abs_x < W && abs_y < H {
+        let color = lerp_color(bar.left_color, bar.right_color, t);
+        let abs_x = bar.x as u32 + px;
+        for py in 0..bar.h {
+            let abs_y = bar.y as u32 + py;
+            if is_inside_rounded(px, py, fill_w, bar.h, bar.corner_r) && abs_x < W && abs_y < H {
                 img.put_pixel(abs_x, abs_y, color);
             }
         }
@@ -375,7 +384,17 @@ pub fn render_bars(data: &ActiveData) -> Result<RgbaImage> {
         let fill_frac = (w.utilization / 100.0) as f32;
         let (fill_l, fill_r) = bar_colors(&w.usage_level);
         draw_gradient_bar(
-            &mut img, bar_x, bar_y, bar_w, bar_h, fill_frac, fill_l, fill_r, 7,
+            &mut img,
+            GradientBar {
+                x: bar_x,
+                y: bar_y,
+                total_w: bar_w,
+                h: bar_h,
+                fill_frac,
+                left_color: fill_l,
+                right_color: fill_r,
+                corner_r: 7,
+            },
         );
 
         // Pace marker on bar
